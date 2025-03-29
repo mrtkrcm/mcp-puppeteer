@@ -5,9 +5,31 @@ import { generateAccessibilitySnapshot } from '../src/browser/snapshot.js';
 
 // Configure puppeteer for CI environments
 const puppeteerConfig = {
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox']
+  headless: 'new',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu'
+  ]
 };
+
+// For CI environments
+if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+  console.log('Using PUPPETEER_EXECUTABLE_PATH:', process.env.PUPPETEER_EXECUTABLE_PATH);
+  puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+}
+
+// Check if there's any incorrect executablePath value
+if (puppeteerConfig.executablePath === '$(which chrome)') {
+  console.log('Removing incorrect executablePath:', puppeteerConfig.executablePath);
+  delete puppeteerConfig.executablePath;
+}
+
+console.log('Puppeteer config:', JSON.stringify(puppeteerConfig, null, 2));
 
 describe('YAML Formatter', () => {
   const mockNode = {
@@ -46,8 +68,13 @@ describe('Accessibility Snapshot Generator', () => {
   let page;
 
   beforeAll(async () => {
-    browser = await puppeteer.launch(puppeteerConfig);
-    page = await browser.newPage();
+    try {
+      browser = await puppeteer.launch(puppeteerConfig);
+      page = await browser.newPage();
+    } catch (error) {
+      console.error('Error launching Puppeteer:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
@@ -55,12 +82,17 @@ describe('Accessibility Snapshot Generator', () => {
   });
 
   test('generates snapshot for simple page', async () => {
-    await page.setContent('<button>Test Button</button>');
-    const snapshot = await generateAccessibilitySnapshot(page);
+    try {
+      await page.setContent('<button>Test Button</button>');
+      const snapshot = await generateAccessibilitySnapshot(page);
 
-    expect(snapshot).toBeDefined();
-    expect(snapshot).toContain('role: button');
-    expect(snapshot).toContain('name: Test Button');
+      expect(snapshot).toBeDefined();
+      expect(snapshot).toContain('role: button');
+      expect(snapshot).toContain('name: Test Button');
+    } catch (error) {
+      console.error('Error generating snapshot:', error);
+      throw error;
+    }
   });
 
   test('handles errors gracefully', async () => {

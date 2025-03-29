@@ -20,26 +20,23 @@ jobs:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org/'
 
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+          echo "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
 
-      - name: Install Chromium dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 \
-            libxi6 libxtst6 libnss3 libcups2 libxss1 libxrandr2 \
-            libasound2 libatk1.0-0 libatk-bridge2.0-0 libpango-1.0-0 libpangocairo-1.0-0 \
-            libgtk-3-0 libgbm1 libxshmfence1 libdrm2
-
       - name: Run tests
         run: npm test
-        env:
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
       - name: Publish to npm
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
