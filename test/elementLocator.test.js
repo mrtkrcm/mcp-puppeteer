@@ -2,6 +2,12 @@ import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals
 import puppeteer from 'puppeteer';
 import { parseElementRefId, findElementByRefId, findElementInPage, getAllFrameTrees } from '../src/browser/elementLocator.js';
 
+// Configure puppeteer for CI environments
+const puppeteerConfig = {
+  headless: true,
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+};
+
 describe('Element Reference ID Parser', () => {
   test('should parse main frame reference', () => {
     const result = parseElementRefId('s1e2');
@@ -68,7 +74,7 @@ describe('Page Integration Tests', () => {
   let page;
 
   beforeAll(async () => {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch(puppeteerConfig);
     page = await browser.newPage();
   });
 

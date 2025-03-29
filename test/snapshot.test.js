@@ -3,6 +3,12 @@ import puppeteer from 'puppeteer';
 import { formatAccessibilityTreeToYaml } from '../src/utils/yamlFormatter.js';
 import { generateAccessibilitySnapshot } from '../src/browser/snapshot.js';
 
+// Configure puppeteer for CI environments
+const puppeteerConfig = {
+  headless: true,
+  args: ['--no-sandbox', '--disable-setuid-sandbox']
+};
+
 describe('YAML Formatter', () => {
   const mockNode = {
     role: 'WebArea',
@@ -40,7 +46,7 @@ describe('Accessibility Snapshot Generator', () => {
   let page;
 
   beforeAll(async () => {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch(puppeteerConfig);
     page = await browser.newPage();
   });
 
