@@ -140,6 +140,33 @@ async function main() {
       }
     }
 
+    // Generate accessibility snapshot
+    console.log('\nGenerating accessibility snapshot...');
+    try {
+      const snapshotResponse = await client.callTool('browser_snapshot', {});
+      console.log('Snapshot generated - preview:');
+
+      // Show a brief preview of the snapshot
+      if (snapshotResponse.content && snapshotResponse.content[0] && snapshotResponse.content[0].text) {
+        const snapshot = snapshotResponse.content[0].text;
+        const lines = snapshot.split('\n');
+        const previewLines = [
+          ...lines.slice(0, 3), // URL and title
+          '...',
+          ...lines.slice(lines.findIndex(l => l.includes('```yaml')) + 1, lines.findIndex(l => l.includes('```yaml')) + 6) // First few elements
+        ];
+        console.log(previewLines.join('\n'));
+
+        // Count the number of elements with references
+        const elementCount = (snapshot.match(/\[ref=/g) || []).length;
+        console.log(`Total elements with references: ${elementCount}`);
+      } else {
+        console.log('Error: Snapshot response format was invalid');
+      }
+    } catch (e) {
+      console.log('Snapshot generation failed:', e.message);
+    }
+
     // List resources
     const resources = await client.listResources();
     console.log('\nAvailable resources:');

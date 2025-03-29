@@ -16,6 +16,7 @@ import puppeteer, { Browser, Page } from "puppeteer";
 import { LRUCache } from "./src/utils/LRUCache.js";
 import { getBrowserConfig, isAllowedDomain, sanitizeScript, withTimeout } from "./src/utils/browserConfig.js";
 import { connectWithRetry, setupPageErrorHandlers, createPage } from "./src/utils/browserConnection.js";
+import { generateAccessibilitySnapshot } from "./src/utils/accessibilitySnapshot.js";
 
 // Constants for resource limits
 const MAX_SCREENSHOTS = 50;
@@ -24,6 +25,15 @@ const DEFAULT_TIMEOUT = 30000;
 
 // Define the tools once to avoid repetition
 const TOOLS: Tool[] = [
+  {
+    name: "browser_snapshot",
+    description: "Capture accessibility snapshot of the current page for better element targeting",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
   {
     name: "puppeteer_navigate",
     description: "Navigate to a URL",
@@ -203,6 +213,37 @@ async function handleToolCall(name: string, args: any): Promise<CallToolResult> 
   const page = await ensureBrowser();
 
   switch (name) {
+    case "browser_snapshot": {
+      try {
+        const snapshot = await generateAccessibilitySnapshot(page);
+        const pageUrl = page.url();
+        const pageTitle = await page.title();
+
+        const lines = [
+          `- Page URL: ${pageUrl}`,
+          `- Page Title: ${pageTitle}`,
+          `- Page Snapshot`,
+          '```yaml',
+          snapshot,
+          '```',
+        ];
+
+        return {
+          content: [{
+            type: "text",
+            text: lines.join('\n')
+          }],
+          isError: false,
+        };
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Failed to capture accessibility snapshot: ${errMsg}` }],
+          isError: true,
+        };
+      }
+    }
+
     case "puppeteer_navigate": {
       const url = args.url;
       if (!isAllowedDomain(url)) {
