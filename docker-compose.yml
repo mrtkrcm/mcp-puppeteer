@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  browserless:
+    image: browserless/chrome
+    ports:
+      - "3000:3000"
+    environment:
+      - CONNECTION_TIMEOUT=60000
+      - DEFAULT_LAUNCH_ARGS=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    restart: unless-stopped
+
+  mcp-puppeteer:
+    build: .
+    depends_on:
+      - browserless
+    ports:
+      - "3001:3001"
+    environment:
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+    command: ["node", "dist/cli.js", "--ws-endpoint", "ws://browserless:3000", "--port", "3001"]

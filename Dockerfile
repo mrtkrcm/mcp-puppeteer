@@ -1,26 +1,21 @@
-FROM node:22-bookworm-slim
+FROM node:20-slim
 
-ENV DEBIAN_FRONTEND noninteractive
+WORKDIR /app
 
-# for arm64 support we need to install chromium provided by debian
-# npm ERR! The chromium binary is not available for arm64.
-# https://github.com/puppeteer/puppeteer/issues/7740
+# Copy package files
+COPY package*.json ./
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+# Install dependencies
+RUN npm ci --only=production
 
-RUN apt-get update && \
-    apt-get install -y wget gnupg && \
-    apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
-        libgtk2.0-0 libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2 && \
-    apt-get install -y chromium && \
-    apt-get clean
+# Skip Chrome download since we're using a remote browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-COPY src/puppeteer /project
-COPY tsconfig.json /tsconfig.json
+# Copy app files
+COPY dist/ ./dist/
 
-WORKDIR /project
+# Expose port
+EXPOSE 3001
 
-RUN npm install
-
-ENTRYPOINT ["node", "dist/index.js"]
+# Set command
+CMD ["node", "dist/cli.js", "--ws-endpoint", "ws://browserless:3000", "--port", "3001"]

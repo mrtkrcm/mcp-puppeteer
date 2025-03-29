@@ -17,7 +17,7 @@ pnpm add @mrtkrcm/mcp-puppeteer
 
 ## Features
 
-- 🌐 Browser automation with Puppeteer
+- �� Browser automation with Puppeteer
 - 📸 Screenshot capabilities
 - 🔍 Accessibility tree generation
 - 🎯 Element targeting with frame support
@@ -27,6 +27,20 @@ pnpm add @mrtkrcm/mcp-puppeteer
 - 📊 Console log monitoring
 
 ## Quick Start
+
+## CLI Usage
+
+```bash
+# Connect to a remote browser endpoint
+npx @mrtkrcm/mcp-puppeteer --ws-endpoint ws://localhost:3000 --port 3001
+
+# Run with local Chrome (no WebSocket endpoint)
+npx @mrtkrcm/mcp-puppeteer --port 3001
+
+# Show help
+npx @mrtkrcm/mcp-puppeteer --help
+```
+
 
 ### Basic Usage
 
@@ -103,12 +117,19 @@ pnpm add @mrtkrcm/mcp-puppeteer
 
 ## Remote Chrome Setup
 
-### Option 1: Browserless
+### Option 1: Browserless with Docker Compose
 ```bash
-docker run -p 3000:3000 ghcr.io/browserless/chromium
+# Start both browserless and mcp-puppeteer servers
+docker-compose up
 ```
 
-### Option 2: Chrome Debug Mode
+### Option 2: Browserless standalone
+```bash
+docker run -p 3000:3000 browserless/chrome
+npx @mrtkrcm/mcp-puppeteer --browserless
+```
+
+### Option 3: Chrome Debug Mode
 ```bash
 chrome --remote-debugging-port=3000 --remote-debugging-address=0.0.0.0
 ```
@@ -134,16 +155,6 @@ npm run test:example
 ```bash
 docker build -t mcp/puppeteer -f Dockerfile .
 ```
-
-## Testing
-
-The project includes comprehensive tests for:
-- Tool functionality
-- Navigation features
-- Element interaction
-- Frame handling
-- Error scenarios
-- Accessibility features
 
 ## Contributing
 
