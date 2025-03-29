@@ -1,3 +1,7 @@
+import debug from 'debug';
+
+const logError = debug('mcp-puppeteer:error');
+
 /**
  * Parses an element reference ID into its components.
  * Format: f{frameIndex}s{snapshotIndex}e{elementIndex} or s{snapshotIndex}e{elementIndex}
@@ -119,7 +123,7 @@ export async function findElementInPage(page, refId) {
 
     return element ? { frame: targetFrame, element } : null;
   } catch (error) {
-    console.error(`Error finding element: ${error.message}`);
+    logError('Error finding element: %s', error.message);
     return null;
   }
 }

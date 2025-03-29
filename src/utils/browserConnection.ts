@@ -1,5 +1,10 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser, Page, ConsoleMessage } from 'puppeteer';
 import { getBrowserConfig } from './browserConfig.js';
+import debug from 'debug';
+
+const logConnection = debug('mcp-puppeteer:connection');
+const logError = debug('mcp-puppeteer:error');
+const logNavigation = debug('mcp-puppeteer:navigation');
 
 /**
  * Connect to a browser with retry logic
@@ -13,7 +18,7 @@ export async function connectWithRetry(endpoint: string, maxRetries = 3): Promis
 
   while (retries <= maxRetries) {
     try {
-      console.error(`Connection attempt ${retries + 1}/${maxRetries + 1} to ${endpoint}`);
+      logConnection('Connection attempt %d/%d to %s', retries + 1, maxRetries + 1, endpoint);
       const browser = await puppeteer.connect({
         browserWSEndpoint: endpoint,
         protocolTimeout: 30000
@@ -21,12 +26,12 @@ export async function connectWithRetry(endpoint: string, maxRetries = 3): Promis
       return browser;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`Connection attempt ${retries + 1} failed: ${lastError.message}`);
+      logError('Connection attempt %d failed: %s', retries + 1, lastError.message);
 
       if (retries < maxRetries) {
         // Exponential backoff
         const delay = Math.pow(2, retries) * 1000;
-        console.error(`Retrying in ${delay}ms...`);
+        logConnection('Retrying in %dms...', delay);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
 
@@ -44,26 +49,41 @@ export async function connectWithRetry(endpoint: string, maxRetries = 3): Promis
  */
 export function setupPageErrorHandlers(page: Page, logs: string[]): void {
   // Console messages
-  page.on('console', msg => {
+  page.on('console', (msg: ConsoleMessage) => {
     const logEntry = `[${msg.type()}] ${msg.text()}`;
     logs.push(logEntry);
+
+    // Forward to appropriate debug logger
+    if (msg.type() === 'error') {
+      logError('Browser console: %s', msg.text());
+    } else if (msg.type().toString() === 'warning') {
+      logNavigation('Browser warning: %s', msg.text());
+    } else {
+      logNavigation('Browser log [%s]: %s', msg.type(), msg.text());
+    }
   });
 
   // Page errors
   page.on('pageerror', error => {
-    logs.push(`[ERROR] Page error: ${error.message}`);
+    const logEntry = `[ERROR] Page error: ${error.message}`;
+    logs.push(logEntry);
+    logError('Page JavaScript error: %s', error.message);
   });
 
   // Request failures
   page.on('requestfailed', request => {
-    logs.push(`[NETWORK] Request failed: ${request.url()} - ${request.failure()?.errorText || 'Unknown error'}`);
+    const logEntry = `[NETWORK] Request failed: ${request.url()} - ${request.failure()?.errorText || 'Unknown error'}`;
+    logs.push(logEntry);
+    logError('Network request failed: %s - %s', request.url(), request.failure()?.errorText || 'Unknown error');
   });
 
   // Response errors (status >= 400)
   page.on('response', response => {
     const status = response.status();
     if (status >= 400) {
-      logs.push(`[NETWORK] Response error: ${response.url()} - Status ${status}`);
+      const logEntry = `[NETWORK] Response error: ${response.url()} - Status ${status}`;
+      logs.push(logEntry);
+      logError('Network response error: %s - Status %d', response.url(), status);
     }
   });
 }
@@ -80,11 +100,13 @@ export async function createPage(browser: Browser): Promise<Page> {
   // Apply viewport if specified
   if (config.defaultViewport) {
     await page.setViewport(config.defaultViewport);
+    logNavigation('Set viewport: %dx%d', config.defaultViewport.width, config.defaultViewport.height);
   }
 
   // Apply user agent if specified
   if (config.userAgent) {
     await page.setUserAgent(config.userAgent);
+    logNavigation('Set user agent: %s', config.userAgent);
   }
 
   return page;

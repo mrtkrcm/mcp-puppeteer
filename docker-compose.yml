@@ -3,19 +3,36 @@ version: '3'
 services:
   browserless:
     image: browserless/chrome
+    container_name: mcp-browserless
     ports:
       - "3000:3000"
     environment:
       - CONNECTION_TIMEOUT=60000
       - DEFAULT_LAUNCH_ARGS=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   mcp-puppeteer:
+    # Use GitHub container registry image in production
+    # image: ghcr.io/modelcontextprotocol/mcp-puppeteer:latest
+    # For local development, use build:
     build: .
+    container_name: mcp-puppeteer
     depends_on:
       - browserless
     ports:
-      - "3001:3001"
+      - "3001:3000"
     environment:
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-    command: ["node", "dist/cli.js", "--ws-endpoint", "ws://browserless:3000", "--port", "3001"]
+      - DEBUG=mcp-puppeteer:*
+    command: ["node", "dist/cli.js", "--ws-endpoint", "ws://browserless:3000", "--remote"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -28,8 +28,6 @@ if (puppeteerConfig.executablePath === '$(which chrome)') {
   delete puppeteerConfig.executablePath;
 }
 
-console.log('Puppeteer config:', JSON.stringify(puppeteerConfig, null, 2));
-
 describe('Element Reference ID Parser', () => {
   test('should parse main frame reference', () => {
     const result = parseElementRefId('s1e2');

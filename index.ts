@@ -17,6 +17,14 @@ import { LRUCache } from "./src/utils/LRUCache.js";
 import { getBrowserConfig, isAllowedDomain, sanitizeScript, withTimeout } from "./src/utils/browserConfig.js";
 import { connectWithRetry, setupPageErrorHandlers, createPage } from "./src/utils/browserConnection.js";
 import { generateAccessibilitySnapshot } from "./src/utils/accessibilitySnapshot.js";
+import debug from 'debug';
+
+// Create debug loggers with different namespaces
+const logServer = debug('mcp-puppeteer:server');
+const logBrowser = debug('mcp-puppeteer:browser');
+const logConnection = debug('mcp-puppeteer:connection');
+const logNavigation = debug('mcp-puppeteer:navigation');
+const logError = debug('mcp-puppeteer:error');
 
 // Constants for resource limits
 const MAX_SCREENSHOTS = 50;
@@ -126,7 +134,7 @@ const screenshots = new LRUCache<string, string>(MAX_SCREENSHOTS);
 
 async function ensureBrowser(): Promise<Page> {
   if (!browser || !browser.isConnected()) {
-    console.error('Attempting to establish browser connection...');
+    logConnection('Attempting to establish browser connection...');
     browser = undefined;
     page = undefined;
     screenshots.clear();
@@ -138,40 +146,40 @@ async function ensureBrowser(): Promise<Page> {
     if (endpoint) {
       try {
         browser = await connectWithRetry(endpoint);
-        console.error('Connected to existing browser instance.');
+        logConnection('Connected to existing browser instance.');
 
         browser.on('disconnected', () => {
-          console.error('Browser disconnected unexpectedly.');
+          logError('Browser disconnected unexpectedly.');
           browser = undefined;
           page = undefined;
           // Attempt reconnection in background
-          setTimeout(() => ensureBrowser().catch(console.error), 1000);
+          setTimeout(() => ensureBrowser().catch(err => logError('Reconnection error: %O', err)), 1000);
         });
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        console.error(`Failed to connect to browser: ${errMsg}`);
+        logError('Failed to connect to browser: %s', errMsg);
         if (process.env.FALLBACK_TO_LOCAL_CHROME === 'false') {
           throw new Error(`Could not connect to browser and fallback is disabled.`);
         }
-        console.error('Connect failed, attempting fallback to local launch...');
+        logConnection('Connect failed, attempting fallback to local launch...');
       }
     }
 
     if (!browser) {
       try {
-        console.error('Launching new local browser instance...');
+        logBrowser('Launching new local browser instance...');
         const launchConfig = getBrowserConfig();
         browser = await puppeteer.launch(launchConfig as any);
-        console.error('Local browser launched.');
+        logBrowser('Local browser launched.');
 
         browser.on('disconnected', () => {
-          console.error('Local browser instance closed unexpectedly.');
+          logError('Local browser instance closed unexpectedly.');
           browser = undefined;
           page = undefined;
         });
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        console.error(`Failed to launch local browser instance: ${errMsg}`);
+        logError('Failed to launch local browser instance: %s', errMsg);
         throw new Error('Failed to initialize browser session.');
       }
     }
@@ -179,23 +187,23 @@ async function ensureBrowser(): Promise<Page> {
     try {
       page = await createPage(browser);
       setupPageErrorHandlers(page, consoleLogs);
-      console.error('Browser page ready.');
+      logBrowser('Browser page ready.');
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to get or configure browser page: ${errMsg}`);
-      if (browser) await browser.close().catch(e => console.error("Error closing browser after page failure:", e));
+      logError('Failed to get or configure browser page: %s', errMsg);
+      if (browser) await browser.close().catch(e => logError("Error closing browser after page failure: %O", e));
       browser = undefined;
       throw new Error("Failed to initialize browser page.");
     }
   } else if (!page || page.isClosed()) {
-    console.error('Page was closed or invalid, opening a new one...');
+    logBrowser('Page was closed or invalid, opening a new one...');
     try {
       page = await createPage(browser);
       setupPageErrorHandlers(page, consoleLogs);
-      console.error('New browser page ready.');
+      logBrowser('New browser page ready.');
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to open new page: ${errMsg}`);
+      logError('Failed to open new page: %s', errMsg);
       page = undefined;
       throw new Error("Failed to open new browser page.");
     }
@@ -310,7 +318,7 @@ async function handleToolCall(name: string, args: any): Promise<CallToolResult> 
             });
           }, 100);
         } catch (e) {
-          console.error("Failed to send notification:", e);
+          logError("Failed to send notification: %O", e);
         }
 
         return {
@@ -520,18 +528,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) =>
 
 // Graceful shutdown handler
 async function gracefulShutdown() {
-  console.error('\nShutting down server...');
+  logServer('Shutting down server...');
   try {
     if (browser?.isConnected()) {
-      console.error('Closing browser...');
+      logServer('Closing browser...');
       await browser.close();
-      console.error('Browser closed.');
+      logServer('Browser closed.');
     }
   } catch (error) {
-    console.error('Error closing browser during shutdown:', error);
+    logError('Error closing browser during shutdown: %O', error);
   } finally {
     await server.close();
-    console.error('MCP server closed.');
+    logServer('MCP server closed.');
     process.exit(0);
   }
 }
@@ -544,10 +552,10 @@ process.on('SIGTERM', gracefulShutdown);
 process.stdin.on("close", () => {
   const isStdioMode = !process.argv.includes('--sse');
   if (isStdioMode) {
-    console.error("STDIN closed, initiating shutdown for stdio server.");
+    logServer("STDIN closed, initiating shutdown for stdio server.");
     gracefulShutdown();
   } else {
-    console.error("STDIN closed, but not shutting down (SSE mode active).");
+    logServer("STDIN closed, but not shutting down (SSE mode active).");
   }
 });
 
@@ -558,6 +566,6 @@ async function runServer() {
 }
 
 runServer().catch(error => {
-  console.error("Server failed to start or encountered a fatal error:", error);
+  logError("Server failed to start or encountered a fatal error: %O", error);
   process.exit(1);
 });
