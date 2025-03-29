@@ -1,0 +1,22 @@
+# Development files
+.git
+.gitignore
+.npmignore
+test/
+src/
+tsconfig.json
+Dockerfile
+*.log
+
+# Examples and docs
+examples/
+docs/
+
+# Build artifacts
+dist/*.map
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,61 @@
+{
+  "name": "@mrtkrcm/mcp-server-puppeteer",
+  "version": "0.0.1",
+  "description": "MCP server for browser automation using Puppeteer with custom options",
+  "license": "MIT",
+  "author": "Murat Karacam",
+  "homepage": "https://github.com/mrtkrcm/mcp-server-puppeteer",
+  "bugs": "https://github.com/mrtkrcm/mcp-server-puppeteer/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-puppeteer": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "start:remote": "PUPPETEER_BROWSER_WS_ENDPOINT=ws://localhost:3000 node dist/index.js",
+    "start:browserless": "PUPPETEER_BROWSER_WS_ENDPOINT=ws://localhost:3000 node dist/index.js",
+    "test": "node test/integrated-test.js",
+    "test:example": "node examples/basic-usage.js"
+  },
+  "keywords": [
+    "mcp",
+    "puppeteer",
+    "browser-automation",
+    "testing",
+    "screenshots",
+    "chrome",
+    "browserless"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.6.1",
+    "puppeteer": "^24.4.0"
+  },
+  "devDependencies": {
+    "shx": "^0.4.0",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrtkrcm/mcp-server-puppeteer.git"
+  },
+  "remoteChrome": {
+    "description": "This package can connect to any remote Chrome instance for better performance and stability",
+    "options": {
+      "browserless": "docker run -p 3000:3000 ghcr.io/browserless/chromium",
+      "chromeDevTools": "Start Chrome with --remote-debugging-port=3000",
+      "customProxy": "Any Chrome Debug Protocol compatible endpoint"
+    },
+    "env": {
+      "PUPPETEER_BROWSER_WS_ENDPOINT": "WebSocket URL to the Chrome instance (default: ws://localhost:3000)"
+    }
+  }
+}
