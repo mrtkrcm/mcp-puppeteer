@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM node:20 AS builder
+FROM --platform=linux/amd64,linux/386 node:20 AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the final production image
-FROM node:20-slim
+FROM --platform=linux/amd64,linux/386 node:20-slim
 
 LABEL org.opencontainers.image.source=https://github.com/mrtkrcm/mcp-puppeteer
 LABEL org.opencontainers.image.description="MCP Puppeteer - Remote Browser Automation Server"

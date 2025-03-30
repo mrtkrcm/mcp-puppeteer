@@ -38,3 +38,24 @@ jobs:
 
     - name: Run tests
       run: npm test
+
+  build-and-test-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      with:
+        install: true
+
+    - name: Build Docker image
+      run: docker build --platform linux/amd64,linux/386 -t mcp-puppeteer:latest .
+
+    - name: Run Docker container
+      run: docker run --rm mcp-puppeteer:latest
+
+    - name: Test Docker container
+      run: |
+        docker run --rm mcp-puppeteer:latest npm test
