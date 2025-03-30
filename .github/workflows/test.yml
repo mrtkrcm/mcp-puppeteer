@@ -51,7 +51,7 @@ jobs:
         install: true
 
     - name: Build Docker image
-      run: docker build --platform linux/amd64,linux/386 -t mcp-puppeteer:latest .
+      run: docker build --platform linux/amd64 -t mcp-puppeteer:latest .
 
     - name: Run Docker container
       run: docker run --rm mcp-puppeteer:latest

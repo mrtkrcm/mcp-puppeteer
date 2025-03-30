@@ -1,6 +1,6 @@
 # Stage 1: Build the application
-FROM --platform=linux/amd64 node:20 AS builder-amd64
-FROM --platform=linux/386 node:20 AS builder-386
+ARG NODE_VERSION=20
+FROM --platform=linux/amd64 node:$NODE_VERSION AS builder-amd64
 
 WORKDIR /app
 
@@ -17,8 +17,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the final production image
-FROM --platform=linux/amd64 node:20 AS final-amd64
-FROM --platform=linux/386 node:20 AS final-386
+FROM --platform=linux/amd64 node:$NODE_VERSION AS final-amd64
 
 LABEL org.opencontainers.image.source=https://github.com/mrtkrcm/mcp-puppeteer
 LABEL org.opencontainers.image.description="MCP Puppeteer - Remote Browser Automation Server"
@@ -38,7 +37,6 @@ ENV DEBUG=mcp-puppeteer:*
 
 # Copy built app files from the builder stage
 COPY --from=builder-amd64 /app/dist ./dist/
-COPY --from=builder-386 /app/dist ./dist/
 
 # Expose port
 EXPOSE 3000
