@@ -17,8 +17,8 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the final production image
-FROM --platform=linux/amd64 node:20-slim AS final-amd64
-FROM --platform=linux/386 node:20-slim AS final-386
+FROM --platform=linux/amd64 node:20 AS final-amd64
+FROM --platform=linux/386 node:20 AS final-386
 
 LABEL org.opencontainers.image.source=https://github.com/mrtkrcm/mcp-puppeteer
 LABEL org.opencontainers.image.description="MCP Puppeteer - Remote Browser Automation Server"
