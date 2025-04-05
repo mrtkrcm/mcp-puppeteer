@@ -65,3 +65,6 @@ jobs:
     - name: Test Docker container
       run: |
         docker run --rm mcp-puppeteer:latest npm test
+
+    - name: Set environment variable
+      run: echo "MY_VAR=some_value" >> $GITHUB_ENV

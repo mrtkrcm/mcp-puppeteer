@@ -35,6 +35,9 @@ RUN npm ci --only=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV DEBUG=mcp-puppeteer:*
 
+# Install libnss3 package
+RUN apt-get update && apt-get install -y libnss3
+
 # Copy built app files from the builder stage
 COPY --from=builder /app/dist ./dist/
 
