@@ -18,10 +18,7 @@ services:
     platform: linux/amd64
 
   mcp-puppeteer:
-    # Use GitHub container registry image in production
-    # image: ghcr.io/modelcontextprotocol/mcp-puppeteer:latest
-    # For local development, use build:
-    build: .
+    image: ghcr.io/modelcontextprotocol/mcp-puppeteer:latest
     container_name: mcp-puppeteer
     depends_on:
       - browserless
