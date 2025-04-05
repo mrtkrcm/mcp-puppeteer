@@ -1,5 +1,6 @@
 # Stage 1: Build the application
-FROM node:20 AS builder
+ARG NODE_VERSION=20
+FROM --platform=$BUILDPLATFORM node:$NODE_VERSION AS builder
 
 WORKDIR /app
 
@@ -16,7 +17,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 2: Create the final production image
-FROM node:20-slim
+FROM --platform=$BUILDPLATFORM node:$NODE_VERSION AS final
 
 LABEL org.opencontainers.image.source=https://github.com/mrtkrcm/mcp-puppeteer
 LABEL org.opencontainers.image.description="MCP Puppeteer - Remote Browser Automation Server"
@@ -33,6 +34,9 @@ RUN npm ci --only=production
 # Skip Chrome download as remote server could be preferred
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV DEBUG=mcp-puppeteer:*
+
+# Install libnss3 package
+RUN apt-get update && apt-get install -y libnss3
 
 # Copy built app files from the builder stage
 COPY --from=builder /app/dist ./dist/
